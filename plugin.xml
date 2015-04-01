@@ -22,13 +22,13 @@
 
     <!-- android -->
     <platform name="android">
-        <source-file src="src/android/com/labakshaya/service/LocationAlarmInterface.java" target-dir="src/com/labaskhaya/service" />
-        <source-file src="src/android/com/labakshaya/service/LocationWatchService.java" target-dir="src/com/labaskhaya/service" />
+        <source-file src="src/android/com/labakshaya/service/LocationAlarmInterface.java" target-dir="src/com/labakshaya/service" />
+        <source-file src="src/android/com/labakshaya/service/LocationWatchService.java" target-dir="src/com/labakshaya/service" />
 
         <source-file src="src/android/com/labakshaya/service/notification.png" target-dir="res/drawable" />
 
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
-            <service android:name="com.tenforwardconsulting.cordova.bgloc.LocationUpdateService" android:enabled="true" android:process=":remote" />
+            <service android:name="com.labakshaya.service.LocationAlarmInterface" android:enabled="true" android:process=":remote" />
         </config-file>
 
         <config-file target="AndroidManifest.xml" parent="/manifest">
@@ -41,7 +41,7 @@
         </config-file>   
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="locationBackgroundWatcher">
-                <param name="android-package" value="com.labaskhaya.service.LocationAlarmInterface"/>
+                <param name="android-package" value="com.labakshaya.service.LocationAlarmInterface"/>
             </feature>
         </config-file> 
      </platform>          
