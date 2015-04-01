@@ -22,10 +22,10 @@
 
     <!-- android -->
     <platform name="android">
-        <source-file src="src/android/LocationAlarmInterface.java" target-dir="src/com/labaskhaya/service" />
-        <source-file src="src/android/LocationWatchService.java" target-dir="src/com/labaskhaya/service" />
+        <source-file src="src/android/com/labakshaya/service/LocationAlarmInterface.java" target-dir="src/com/labaskhaya/service" />
+        <source-file src="src/android/com/labakshaya/service/LocationWatchService.java" target-dir="src/com/labaskhaya/service" />
 
-        <source-file src="src/android/notification.png" target-dir="res/drawable" />
+        <source-file src="src/android/com/labakshaya/service/notification.png" target-dir="res/drawable" />
 
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
             <service android:name="com.tenforwardconsulting.cordova.bgloc.LocationUpdateService" android:enabled="true" android:process=":remote" />
