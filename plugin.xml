@@ -28,7 +28,7 @@
         <source-file src="src/android/com/labakshaya/service/notification.png" target-dir="res/drawable" />
 
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
-            <service android:name="com.labakshaya.service.LocationAlarmInterface" android:enabled="true" android:process=":remote" />
+            <service android:name="com.labakshaya.service.LocationWatchService" android:enabled="true" android:process=":remote" />
         </config-file>
 
         <config-file target="AndroidManifest.xml" parent="/manifest">
