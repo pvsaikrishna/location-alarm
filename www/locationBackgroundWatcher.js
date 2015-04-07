@@ -33,6 +33,14 @@ module.exports = {
             'locationBackgroundWatcher',
             'stop',
             []);
+    },
+    getlocation: function(success, failure, config) {
+        exec(success || function() {},
+            failure || function() {},
+            'locationBackgroundWatcher',
+            'stop',
+            []);
     }
+
 
 };
