@@ -9,10 +9,13 @@ import org.json.JSONObject;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Bundle;
 import android.util.Log;
 
-public class LocationAlarmInterface extends CordovaPlugin {
+public class LocationAlarmInterface extends CordovaPlugin implements LocationListener {
     private static final String TAG = "BackgroundGpsPlugin";
 
     public static final String ACTION_START = "start";
@@ -31,6 +34,10 @@ public class LocationAlarmInterface extends CordovaPlugin {
     private String notificationTitle = "Background tracking";
     private String notificationText = "ENABLED";
     private String stopOnTerminate = "false";
+
+    private CallbackContext globalCallbackContext = null;
+    private LocationManager locationManager;
+
 
     public boolean execute(String action, JSONArray data, CallbackContext callbackContext) {
         Activity activity = this.cordova.getActivity();
@@ -80,6 +87,16 @@ public class LocationAlarmInterface extends CordovaPlugin {
             result = true;
             // TODO reconfigure Service
             callbackContext.success();
+        }else if (ACTION_SET_CONFIG.equalsIgnoreCase("location")) {
+            globalCallbackContext = callbackContext;
+
+            if(locationManager != null) {
+                locationManager = (LocationManager) this.cordova.getActivity().getBaseContext()
+                        .getSystemService(Context.LOCATION_SERVICE);
+            }
+
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, this);
+
         }
 
         return result;
@@ -95,5 +112,35 @@ public class LocationAlarmInterface extends CordovaPlugin {
         if(isEnabled && stopOnTerminate.equalsIgnoreCase("true")) {
             activity.stopService(updateServiceIntent);
         }
+    }
+
+    public void onLocationChanged(Location location) {
+        Log.d(TAG, "- onLocationChanged: " + location.getLatitude() + "," + location.getLongitude() + ", accuracy: " + location.getAccuracy());
+
+        JSONObject r = new JSONObject();
+        try {
+            r.put("altitude", location.getAltitude());
+            r.put("latitude", location.getLatitude());
+        }catch(Exception e){}
+
+        globalCallbackContext.success(r);
+        //compute the time interval for polling next location
+
+
+    }
+
+    public void onProviderDisabled(String provider) {
+        // TODO Auto-generated method stub
+        Log.d(TAG, "- onProviderDisabled: " + provider);
+    }
+
+    public void onProviderEnabled(String provider) {
+        // TODO Auto-generated method stub
+        Log.d(TAG, "- onProviderEnabled: " + provider);
+    }
+
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+        // TODO Auto-generated method stub
+        Log.d(TAG, "- onStatusChanged: " + provider + ", status: " + status);
     }
 }

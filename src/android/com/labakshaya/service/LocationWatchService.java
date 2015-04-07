@@ -126,7 +126,7 @@ public class LocationWatchService extends Service implements LocationListener {
         Notification.Builder builder = new Notification.Builder(this);
         builder.setContentTitle(notificationTitle);
         builder.setContentText(notificationText);
-        builder.setSmallIcon(android.R.drawable.ic_menu_mylocation);
+       // builder.setSmallIcon(android.R.drawable.ic_menu_mylocation);
         builder.setContentIntent(pendingIntent);
         Notification notification;
         if (android.os.Build.VERSION.SDK_INT >= 16) {
