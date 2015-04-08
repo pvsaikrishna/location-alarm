@@ -17,7 +17,7 @@ import android.os.Bundle;
 import android.util.Log;
 
 public class LocationAlarmInterface extends CordovaPlugin implements LocationListener {
-    private static final String TAG = "BackgroundGpsPlugin";
+    private static final String TAG = "LocationAlarmInterface";
 
     public static final String ACTION_START = "start";
     public static final String ACTION_STOP = "stop";
@@ -38,7 +38,7 @@ public class LocationAlarmInterface extends CordovaPlugin implements LocationLis
     private String stopOnTerminate = "false";
 
     private CallbackContext globalCallbackContext = null;
-    private LocationManager locationManager;
+    private LocationManager locationManager = null;
 
 
     public boolean execute(String action, JSONArray data, CallbackContext callbackContext) {
@@ -93,9 +93,12 @@ public class LocationAlarmInterface extends CordovaPlugin implements LocationLis
         }else if (ACTION_LOCATION.equalsIgnoreCase("location")) {
             globalCallbackContext = callbackContext;
 
-            if(locationManager != null) {
+            if(locationManager == null) {
+        	Log.d(TAG, "locationManager init" );
                 locationManager = (LocationManager) this.cordova.getActivity().getBaseContext()
                         .getSystemService(Context.LOCATION_SERVICE);
+
+        	Log.d(TAG, "locationManager : "+locationManager);
             }
 
         Log.d(TAG, "In location fetch" );
