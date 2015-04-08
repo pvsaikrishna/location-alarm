@@ -46,7 +46,7 @@ public class LocationAlarmInterface extends CordovaPlugin implements LocationLis
         Activity activity = this.cordova.getActivity();
         Boolean result = false;
         updateServiceIntent = new Intent(activity, LocationWatchService.class);
-
+        this.globalCallbackContext = callbackContext;
         if (ACTION_START.equalsIgnoreCase(action) && !isEnabled) {
             result = true;
             if (latitude == null || longitude == null || distanceToAlarm == null) {
@@ -91,7 +91,7 @@ public class LocationAlarmInterface extends CordovaPlugin implements LocationLis
             // TODO reconfigure Service
             callbackContext.success();
         }else if (ACTION_LOCATION.equalsIgnoreCase(action)) {
-            globalCallbackContext = callbackContext;
+            result = true;
 
             if(locationManager == null) {
         	Log.d(TAG, "locationManager init" );
@@ -102,11 +102,12 @@ public class LocationAlarmInterface extends CordovaPlugin implements LocationLis
             }
 
         Log.d(TAG, "In location fetch" );
+            JSONObject r = new JSONObject();
             locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, this);
-            PluginResult pluginResult = new PluginResult(PluginResult.Status.NO_RESULT);
+            PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, r);
             pluginResult.setKeepCallback(true);
-            globalCallbackContext.sendPluginResult(pluginResult);
-
+            callbackContext.sendPluginResult(pluginResult);
+            Log.d(TAG, "callbackcontext :  "+callbackContext.getCallbackId()+" - "+callbackContext);
 
 
         }
@@ -131,16 +132,22 @@ public class LocationAlarmInterface extends CordovaPlugin implements LocationLis
 
         JSONObject r = new JSONObject();
         try {
-            r.put("altitude", location.getAltitude());
             r.put("latitude", location.getLatitude());
+            r.put("longitude", location.getLongitude());
         }catch(Exception e){}
 
-        PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, r);
-        pluginResult.setKeepCallback(false);
-        globalCallbackContext.sendPluginResult(pluginResult);
+
+        if(this.globalCallbackContext != null) {
+            PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, r);
+            pluginResult.setKeepCallback(false);
+            Log.d(TAG, "callbackcontext2 :  "+this.globalCallbackContext.getCallbackId()+" - "+this.globalCallbackContext);
+            this.globalCallbackContext.sendPluginResult(pluginResult);
+            this.globalCallbackContext = null;
+        }
+
+        locationManager.removeUpdates(this);
+
         //compute the time interval for polling next location
-
-
 
     }
 
