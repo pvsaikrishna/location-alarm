@@ -2,6 +2,7 @@ package com.labakshaya.service;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
+import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -95,6 +96,11 @@ public class LocationAlarmInterface extends CordovaPlugin implements LocationLis
                         .getSystemService(Context.LOCATION_SERVICE);
             }
 
+            PluginResult pluginResult = new PluginResult(PluginResult.Status.NO_RESULT);
+            pluginResult.setKeepCallback(true);
+            globalCallbackContext.sendPluginResult(pluginResult);
+
+
             locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, this);
 
         }
@@ -123,8 +129,11 @@ public class LocationAlarmInterface extends CordovaPlugin implements LocationLis
             r.put("latitude", location.getLatitude());
         }catch(Exception e){}
 
-        globalCallbackContext.success(r);
+        PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, r);
+        pluginResult.setKeepCallback(false);
+        globalCallbackContext.sendPluginResult(pluginResult);
         //compute the time interval for polling next location
+
 
 
     }
