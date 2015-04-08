@@ -90,7 +90,7 @@ public class LocationAlarmInterface extends CordovaPlugin implements LocationLis
             result = true;
             // TODO reconfigure Service
             callbackContext.success();
-        }else if (ACTION_LOCATION.equalsIgnoreCase("location")) {
+        }else if (ACTION_LOCATION.equalsIgnoreCase(action)) {
             globalCallbackContext = callbackContext;
 
             if(locationManager == null) {
