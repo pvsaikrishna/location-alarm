@@ -38,7 +38,7 @@ module.exports = {
         exec(success || function() {},
             failure || function() {},
             'locationBackgroundWatcher',
-            'stop',
+            'location',
             []);
     }
 

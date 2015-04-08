@@ -23,6 +23,7 @@ public class LocationAlarmInterface extends CordovaPlugin implements LocationLis
     public static final String ACTION_STOP = "stop";
     public static final String ACTION_CONFIGURE = "configure";
     public static final String ACTION_SET_CONFIG = "setConfig";
+    public static final String ACTION_LOCATION = "location";
 
     private Intent updateServiceIntent;
 
@@ -41,6 +42,7 @@ public class LocationAlarmInterface extends CordovaPlugin implements LocationLis
 
 
     public boolean execute(String action, JSONArray data, CallbackContext callbackContext) {
+        Log.d(TAG, "In execute action:"+action );
         Activity activity = this.cordova.getActivity();
         Boolean result = false;
         updateServiceIntent = new Intent(activity, LocationWatchService.class);
@@ -88,7 +90,7 @@ public class LocationAlarmInterface extends CordovaPlugin implements LocationLis
             result = true;
             // TODO reconfigure Service
             callbackContext.success();
-        }else if (ACTION_SET_CONFIG.equalsIgnoreCase("location")) {
+        }else if (ACTION_LOCATION.equalsIgnoreCase("location")) {
             globalCallbackContext = callbackContext;
 
             if(locationManager != null) {
@@ -96,12 +98,13 @@ public class LocationAlarmInterface extends CordovaPlugin implements LocationLis
                         .getSystemService(Context.LOCATION_SERVICE);
             }
 
+        Log.d(TAG, "In location fetch" );
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, this);
             PluginResult pluginResult = new PluginResult(PluginResult.Status.NO_RESULT);
             pluginResult.setKeepCallback(true);
             globalCallbackContext.sendPluginResult(pluginResult);
 
 
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, this);
 
         }
 
