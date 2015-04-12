@@ -240,6 +240,13 @@ public class LocationWatchService extends Service implements LocationListener {
         }
         return super.stopService(intent);
     }
+    
+    @Override
+    public void onDestroy() {
+        Log.w(TAG, "------------------------------------------ Destroyed Location update Service");
+        cleanUp();
+        super.onDestroy();
+    }
 
     public void resetStationaryAlarm(long timeOut) {
         alarmManager.cancel(locationPollAlarmPI);
@@ -266,6 +273,8 @@ public class LocationWatchService extends Service implements LocationListener {
 
     public void onLocationChanged(Location location) {
         Log.d(TAG, "- onLocationChanged: " + location.getLatitude() + "," + location.getLongitude() + ", accuracy: " + location.getAccuracy());
+
+        isLocationReturned = true;
 
         float distanceToDestination = location.distanceTo(destinationLocation);
         Log.d(TAG, "distance : "+distanceToDestination);
