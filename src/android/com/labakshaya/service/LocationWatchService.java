@@ -71,7 +71,7 @@ public class LocationWatchService extends Service implements LocationListener {
         Log.i(TAG, "OnCreate");
 
         locationManager         = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
-        alarmManager            = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
+            alarmManager            = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
         toneGenerator           = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100);
         connectivityManager     = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
         notificationManager     = (NotificationManager)this.getSystemService(Context.NOTIFICATION_SERVICE);
