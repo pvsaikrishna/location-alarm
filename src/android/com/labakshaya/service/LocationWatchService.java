@@ -41,8 +41,8 @@ public class LocationWatchService extends Service implements LocationListener {
     private long lastUpdateTime = 0l;
 
 
-    private Double latitude;
-    private Double longitude;
+    private double latitude;
+    private double longitude;
     private String distanceToAlarm;
     private Integer locationTimeout = 30;
     private Boolean isDebugging;
@@ -58,11 +58,22 @@ public class LocationWatchService extends Service implements LocationListener {
     private ToneGenerator toneGenerator;
 
     private Criteria criteria;
+    private boolean isLocationReturned = false;
 
+    private Location destinationLocation = null;
 
     private PendingIntent locationPollAlarmPI;
 
     private int locationProviderCounter = 0;
+    private PendingIntent networkProviderTimeOutPI;
+    private PendingIntent gpsProviderTimeOutPI;
+
+    private static final String INTERFACE_NETWORK_TIMEOUT = "com.labakshaya.locationalarm.service.NETWORK_TIMEOUT";
+    private static final String INTERFACE_GPS_TIMEOUT = "com.labakshaya.locationalarm.service.GPS_TIMEOUT";
+
+    private long networkTimeout = 5 * 60 * 1000; //5mins
+    private long gpsTimeout = 5 * 60 * 1000; //5mins
+
 
 
     @Override
@@ -71,7 +82,7 @@ public class LocationWatchService extends Service implements LocationListener {
         Log.i(TAG, "OnCreate");
 
         locationManager         = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
-            alarmManager            = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
+        alarmManager            = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
         toneGenerator           = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100);
         connectivityManager     = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
         notificationManager     = (NotificationManager)this.getSystemService(Context.NOTIFICATION_SERVICE);
@@ -80,11 +91,17 @@ public class LocationWatchService extends Service implements LocationListener {
         locationPollAlarmPI   = PendingIntent.getBroadcast(this, 0, new Intent(LOCATION_POLL_ACTION), 0);
         registerReceiver(locationPollAlarmReceiver, new IntentFilter(LOCATION_POLL_ACTION));
 
+        networkProviderTimeOutPI = PendingIntent.getBroadcast(this, 0, new Intent(INTERFACE_NETWORK_TIMEOUT), 0);
+        registerReceiver(networkTimeOutReceiver, new IntentFilter(INTERFACE_NETWORK_TIMEOUT));
+
+        gpsProviderTimeOutPI = PendingIntent.getBroadcast(this, 0, new Intent(INTERFACE_GPS_TIMEOUT), 0);
+        registerReceiver(gpsTimeOutReceiver, new IntentFilter(INTERFACE_GPS_TIMEOUT));
+
+
         PowerManager pm         = (PowerManager) getSystemService(Context.POWER_SERVICE);
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
 
         wakeLock.acquire();
-
 
         // Location criteria
         criteria = new Criteria();
@@ -109,15 +126,22 @@ public class LocationWatchService extends Service implements LocationListener {
         notificationText = intent.getStringExtra("notificationText");
         stopOnTerminate = Boolean.parseBoolean(intent.getStringExtra("stopOnTerminate"));
 
-        raiseNotification(notificationTitle, notificationTitle, startId);
+        raiseNotification(notificationTitle, notificationText, startId);
 
-        fetchLocationsFromVariousSources();
+        destinationLocation = new Location("GoogleAPI");
+        destinationLocation.setLatitude(latitude);
+        destinationLocation.setLongitude(longitude);
+
+        fetchLocationUsingNetwork();
 
         //We want this service to continue running until it is explicitly stopped
         return START_REDELIVER_INTENT;
     }
 
     private void raiseNotification(String notificationTitle, String notificationText, int notificationId){
+
+        Log.d(TAG, "in raiseNotification text : "+notificationText+" title:"+notificationTitle);
+
         // Build a Notification required for running service in foreground.
         Intent main = new Intent(this, LocationAlarmInterface.class);
         main.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -126,7 +150,8 @@ public class LocationWatchService extends Service implements LocationListener {
         Notification.Builder builder = new Notification.Builder(this);
         builder.setContentTitle(notificationTitle);
         builder.setContentText(notificationText);
-       // builder.setSmallIcon(android.R.drawable.ic_menu_mylocation);
+        //builder.setSmallIcon(android.R.drawable.ic_menu_mylocation);
+        builder.setSmallIcon(getApplicationContext().getApplicationInfo().icon);
         builder.setContentIntent(pendingIntent);
         Notification notification;
         if (android.os.Build.VERSION.SDK_INT >= 16) {
@@ -137,27 +162,62 @@ public class LocationWatchService extends Service implements LocationListener {
         notification.flags |= Notification.FLAG_ONGOING_EVENT | Notification.FLAG_FOREGROUND_SERVICE | Notification.FLAG_NO_CLEAR;
         startForeground(notificationId, notification);
 
+        Log.d(TAG, "notification raised : "+notificationText+" title:"+notificationTitle);
     }
 
-    private void fetchLocationsFromVariousSources(){
+    private void fetchLocationUsingNetwork() {
 
-        this.locationProviderCounter = 0;
+        isLocationReturned = false;
+
+        Log.i(TAG, "fetching location using network");
 
         locationManager.removeUpdates(this);
 
-        criteria.setAccuracy(Criteria.ACCURACY_FINE);
-      //  criteria.setHorizontalAccuracy(translateDesiredAccuracy(desiredAccuracy));
-        criteria.setPowerRequirement(Criteria.POWER_HIGH);
+        alarmManager.cancel(networkProviderTimeOutPI);
+        alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + networkTimeout, networkProviderTimeOutPI); // Millisec * Second * Minute
 
-        List<String> matchingProviders = locationManager.getAllProviders();
-        for (String provider: matchingProviders) {
-            if (provider != LocationManager.PASSIVE_PROVIDER) {
-                this.locationProviderCounter++;
-                locationManager.requestLocationUpdates(provider, 0, 0, this);
-            }
-        }
 
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, this);
     }
+
+    private void fetchLocationUsingGPS() {
+
+        Log.i(TAG, "fetching location using gps");
+
+
+        locationManager.removeUpdates(this);
+
+        alarmManager.cancel(gpsProviderTimeOutPI);
+        alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + gpsTimeout, gpsProviderTimeOutPI); // Millisec * Second * Minute
+
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
+    }
+
+    private BroadcastReceiver networkTimeOutReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.i(TAG, "networkTimeOutReceiver");
+            if (!isLocationReturned) {
+                //network couldn't fetch location so use gps.
+                fetchLocationUsingGPS();
+            }
+
+        }
+    };
+
+    private BroadcastReceiver gpsTimeOutReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.i(TAG, "gpsTimeOutReceiver");
+            if (!isLocationReturned) {
+                //try with network again if gps couldn't fetch the location either
+                fetchLocationUsingNetwork();
+            }
+
+
+        }
+    };
+
 
 
     @TargetApi(16)
@@ -188,17 +248,33 @@ public class LocationWatchService extends Service implements LocationListener {
 
     private void cleanUp() {
 
+        locationManager.removeUpdates(this);
+
+        //clean if any alarms exit
+        alarmManager.cancel(locationPollAlarmPI);
+        alarmManager.cancel(networkProviderTimeOutPI);
+        alarmManager.cancel(gpsProviderTimeOutPI);
+
+        unregisterReceiver(locationPollAlarmReceiver);
+        unregisterReceiver(networkTimeOutReceiver);
+        unregisterReceiver(gpsTimeOutReceiver);
+
+        stopForeground(true);
+        wakeLock.release();
+
     }
 
     public void onLocationChanged(Location location) {
         Log.d(TAG, "- onLocationChanged: " + location.getLatitude() + "," + location.getLongitude() + ", accuracy: " + location.getAccuracy());
 
+        float distanceToDestination = location.distanceTo(destinationLocation);
+        Log.d(TAG, "distance : "+distanceToDestination);
+        raiseNotification("LocationChanged", location.getProvider()+" "+distanceToDestination, 1);
 
-        //compute the time interval for polling next location
-
-        raiseNotification("LocationChanged", location.getLatitude() + "," + location.getLongitude() + ", accuracy: " + location.getAccuracy(), 1);
-
+        //TODO calculate timeout
         resetStationaryAlarm(DEFAULT_TIMEOUT);
+
+        locationManager.removeUpdates(this);
     }
 
         @Override
@@ -231,7 +307,7 @@ public class LocationWatchService extends Service implements LocationListener {
         public void onReceive(Context context, Intent intent) {
             Log.i(TAG, "locationPollAlarmReceiver");
 
-            fetchLocationsFromVariousSources();
+            fetchLocationUsingNetwork();
         }
     };
 
