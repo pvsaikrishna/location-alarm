@@ -24,11 +24,16 @@
     <platform name="android">
         <source-file src="src/android/com/labakshaya/service/LocationAlarmInterface.java" target-dir="src/com/labakshaya/service" />
         <source-file src="src/android/com/labakshaya/service/LocationWatchService.java" target-dir="src/com/labakshaya/service" />
+        <source-file src="src/android/com/labakshaya/service/AlarmScreen.java" target-dir="src/com/labakshaya/service" />
+        <source-file src="src/android/com/labakshaya/service/MPlayerUtility.java" target-dir="src/com/labakshaya/service" />
 
         <source-file src="src/android/com/labakshaya/service/notification.png" target-dir="res/drawable" />
 
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
             <service android:name="com.labakshaya.service.LocationWatchService" android:enabled="true" android:process=":remote" />
+	    <activity android:name="com.labakshaya.service.AlarmScreen"
+                      android:label="@string/app_name">
+            </activity>
         </config-file>
 
         <config-file target="AndroidManifest.xml" parent="/manifest">

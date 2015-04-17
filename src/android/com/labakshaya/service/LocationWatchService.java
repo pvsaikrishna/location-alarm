@@ -14,15 +14,21 @@ import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.media.AudioAttributes;
 import android.media.AudioManager;
+import android.media.RingtoneManager;
 import android.media.ToneGenerator;
 import android.net.ConnectivityManager;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.widget.Toast;
+
+import com.labakshaya.trainalarm.MainActivity;
 
 import java.util.List;
 
@@ -44,6 +50,7 @@ public class LocationWatchService extends Service implements LocationListener {
     private double latitude;
     private double longitude;
     private String distanceToAlarm;
+    private int distanceToAlarmInt;
     private Integer locationTimeout = 30;
     private Boolean isDebugging;
     private String notificationTitle = "Background checking";
@@ -74,6 +81,8 @@ public class LocationWatchService extends Service implements LocationListener {
     private long networkTimeout = 5 * 60 * 1000; //5mins
     private long gpsTimeout = 5 * 60 * 1000; //5mins
 
+    private long maxTimeOutAbove100 = 60 * 60 * 1000; //60mins
+    private long minTimeOutBelow100 = 15 * 60 * 1000; //15mins
 
 
     @Override
@@ -121,6 +130,8 @@ public class LocationWatchService extends Service implements LocationListener {
         longitude = Double.parseDouble( intent.getStringExtra("longitude"));
         distanceToAlarm = intent.getStringExtra("distanceToAlarm");
 
+        distanceToAlarmInt = Integer.parseInt(distanceToAlarm);
+
         isDebugging = Boolean.parseBoolean(intent.getStringExtra("isDebugging"));
         notificationTitle = intent.getStringExtra("notificationTitle");
         notificationText = intent.getStringExtra("notificationText");
@@ -142,8 +153,12 @@ public class LocationWatchService extends Service implements LocationListener {
 
         Log.d(TAG, "in raiseNotification text : "+notificationText+" title:"+notificationTitle);
 
+        Context context = getApplicationContext();
+        String pkgName  = context.getPackageName();
+
+
         // Build a Notification required for running service in foreground.
-        Intent main = new Intent(this, LocationAlarmInterface.class);
+        Intent main = new Intent(this, MainActivity.class);
         main.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, main,  PendingIntent.FLAG_UPDATE_CURRENT);
 
@@ -173,11 +188,15 @@ public class LocationWatchService extends Service implements LocationListener {
 
         locationManager.removeUpdates(this);
 
+        if(locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)){
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, this);
+            networkTimeout = 5000; // 5secs
+        }
+
         alarmManager.cancel(networkProviderTimeOutPI);
         alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + networkTimeout, networkProviderTimeOutPI); // Millisec * Second * Minute
 
 
-        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, this);
     }
 
     private void fetchLocationUsingGPS() {
@@ -191,6 +210,15 @@ public class LocationWatchService extends Service implements LocationListener {
         alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + gpsTimeout, gpsProviderTimeOutPI); // Millisec * Second * Minute
 
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
+    }
+
+    private void startAlarm(){
+
+        Intent alarmIntent = new Intent(getBaseContext(), AlarmScreen.class);
+        alarmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        getApplication().startActivity(alarmIntent);
+
     }
 
     private BroadcastReceiver networkTimeOutReceiver = new BroadcastReceiver() {
@@ -276,13 +304,28 @@ public class LocationWatchService extends Service implements LocationListener {
 
         isLocationReturned = true;
 
+        long timeOutForNextLocationUpdate = DEFAULT_TIMEOUT;
+
         float distanceToDestination = location.distanceTo(destinationLocation);
         Log.d(TAG, "distance : "+distanceToDestination);
-        raiseNotification("LocationChanged", location.getProvider()+" "+distanceToDestination, 1);
+        int distanceInKms = (new Float( distanceToDestination/1000.0f)).intValue();
+        raiseNotification("Train Alarm : Update", " we are "+distanceInKms+" KMs away from your destination.", 1);
+
+        if(distanceInKms <= distanceToAlarmInt){
+            startAlarm();
+        }else{
+            int avgSpeed = 60; //kmph
+            //compute timeout
+            if(distanceInKms > 100){
+                timeOutForNextLocationUpdate = maxTimeOutAbove100;
+            }else{
+                avgSpeed = 40;
+                timeOutForNextLocationUpdate = minTimeOutBelow100;//this needs to be changed. Need to be little aggressive here.
+            }
+        }
 
         //TODO calculate timeout
         resetStationaryAlarm(DEFAULT_TIMEOUT);
-
         locationManager.removeUpdates(this);
     }
 
