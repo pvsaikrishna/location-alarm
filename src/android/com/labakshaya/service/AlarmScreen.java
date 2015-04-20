@@ -8,6 +8,7 @@ import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
@@ -50,9 +51,6 @@ public class AlarmScreen extends Activity {
         alarmScreenTitle.setText("Nearing destination !!");
         alarmScreenTitle.setTextSize(38);
         relativeLayout.addView(alarmScreenTitle);
-
-
-
 
         Button dismissButton = new Button(this);
         dismissButton.setText("Dismiss");
@@ -119,6 +117,11 @@ public class AlarmScreen extends Activity {
         };
 
         new Handler().postDelayed(releaseWakelock, WAKELOCK_TIMEOUT);
+    }
+    @Override
+    public void onBackPressed()
+    {
+       // super.onBackPressed();
     }
 
     @SuppressWarnings("deprecation")
@@ -193,4 +196,13 @@ public class AlarmScreen extends Activity {
             mWakeLock.release();
         }
     }
+
+    private BroadcastReceiver stopAlarmBroadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.i(TAG, "locationPollAlarmReceiver");
+
+
+        }
+    };
 }

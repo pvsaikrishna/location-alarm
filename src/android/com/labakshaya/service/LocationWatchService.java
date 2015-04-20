@@ -40,6 +40,7 @@ public class LocationWatchService extends Service implements LocationListener {
     private static final String TAG = "LocationWatchService";
 
     private static final String LOCATION_POLL_ACTION = "com.labakshaya.locationalarm.LOCATION_POLL_ACTION";
+    public static final String STOP_SERVICE = "com.labakshaya.locationalarm.STOP_SERVICE";
     private static final long DEFAULT_TIMEOUT = 5 * 1000 * 60;    // 5 minutes.
 
     private PowerManager.WakeLock wakeLock;
@@ -294,6 +295,10 @@ public class LocationWatchService extends Service implements LocationListener {
         unregisterReceiver(networkTimeOutReceiver);
         unregisterReceiver(gpsTimeOutReceiver);
 
+        Intent intent = new Intent();
+        intent.setAction(LocationWatchService.STOP_SERVICE);
+       // sendBroadcast(intent);
+
         stopForeground(true);
         wakeLock.release();
 
@@ -314,18 +319,22 @@ public class LocationWatchService extends Service implements LocationListener {
         if(distanceInKms <= distanceToAlarmInt){
             startAlarm();
         }else{
-            int avgSpeed = 60; //kmph
+            float avgSpeed = 60; //kmph
             //compute timeout
             if(distanceInKms > 100){
                 timeOutForNextLocationUpdate = maxTimeOutAbove100;
             }else{
                 avgSpeed = 40;
-                timeOutForNextLocationUpdate = minTimeOutBelow100;//this needs to be changed. Need to be little aggressive here.
+                //t = d/s
+                timeOutForNextLocationUpdate = ( (int)(((float)(distanceInKms-distanceToAlarmInt)/avgSpeed) * 60) ) * 60 * 1000;
+                timeOutForNextLocationUpdate = Math.min(timeOutForNextLocationUpdate, minTimeOutBelow100);
             }
+
+            resetStationaryAlarm(timeOutForNextLocationUpdate);
         }
 
         //TODO calculate timeout
-        resetStationaryAlarm(DEFAULT_TIMEOUT);
+
         locationManager.removeUpdates(this);
     }
 
